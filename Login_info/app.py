@@ -63,7 +63,7 @@ def login():
             return redirect(url_for('home'))
         else:
             flash("Invalid username or password", "danger")
-            return redirect(url_for('login'))
+            return redirect(url_for('register'))
 
     return render_template('login.html')
 
