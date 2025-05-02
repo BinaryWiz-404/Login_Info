@@ -1,8 +1,9 @@
-from flask import Flask, render_template, request, redirect, flash
+from flask import Flask, render_template, request, redirect, flash,session, url_for
+from flask_mysqldb import MySQL
 from flask_mysqldb import MySQL
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'  # Needed for flash messages
+app.secret_key = 'myflaskloginappsecretkey123'  # Needed for flash messages
 
 # MySQL config
 app.config['MYSQL_HOST'] = 'localhost'
@@ -12,10 +13,18 @@ app.config['MYSQL_DB'] = 'login_db'
 
 mysql = MySQL(app)
 
+# @app.route('/')
+# def home_page():
+#     return "Database connected successfully!"
 @app.route('/')
+@app.route('/home')
 def home():
-    return "Database connected successfully!"
-
+    if 'username' in session:
+        return render_template('home.html', username=session['username'])
+    else:
+        flash("Please log in first", "warning")
+        return redirect('/login')
+    return render_template('home.html')
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -29,9 +38,38 @@ def register():
         mysql.connection.commit()
         cur.close()
         flash("Registration successful!", "success")
-        return redirect('/')
+        return redirect('/home')
 
     return render_template('register.html')
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+
+        cur = mysql.connection.cursor()
+        cur.execute("SELECT * FROM users WHERE username = %s AND password = %s", (username, password))
+        user = cur.fetchone()
+        cur.close()
+
+        if user:
+            session['username'] = username
+            return redirect('/home')
+        else:
+            flash("Invalid username or password", "danger")
+            return redirect('/login')
+
+    return render_template('login.html')
+
+
+    
+@app.route('/logout')
+def logout():
+    session.pop('username', None)
+    flash("You have been logged out", "info")
+    return redirect('/login')
 
 if __name__ == '__main__':
     app.run(debug=True)
